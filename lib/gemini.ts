@@ -224,7 +224,17 @@ export async function* streamTextAnalysis(query: string): AsyncGenerator<string>
         role: 'user',
         parts: [
           {
-            text: `Analyze the song/artist/sound described below and produce a complete SoundMap following exactly the format in your instructions. Be thorough, specific, and technically precise. Use your knowledge of the track's production, instrumentation, and sonic character.\n\nQuery: ${query}`
+            text: `The user is looking for a SoundMap analysis based on a text query. IMPORTANT RULES:
+
+1. FIRST, identify the EXACT song they mean. If the artist or song name they provided is WRONG (e.g. wrong artist credited for a song), CORRECT it at the top of your response before the analysis. Add a brief note like: "**Note:** 'Hide and Seek' is by Imogen Heap, not Frou Frou (though Imogen Heap was one half of Frou Frou). Analyzing 'Hide and Seek' by Imogen Heap."
+
+2. If the query is ambiguous (multiple songs with the same name, or could refer to different versions), state which specific track you are analyzing and why.
+
+3. Analyze ONLY the specific song identified — do not blend or merge characteristics from different songs or artists.
+
+4. Then produce a complete SoundMap following exactly the format in your instructions. Be thorough, specific, and technically precise. Use your knowledge of the track's production, instrumentation, and sonic character.
+
+Query: ${query}`
           }
         ]
       }
