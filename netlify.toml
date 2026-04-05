@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Netlify installs devDependencies by default for build
+# GEMINI_API_KEY must be set in Netlify → Site Settings → Environment Variables
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
