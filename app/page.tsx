@@ -208,6 +208,7 @@ export default function Home() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
+      setStatusMessage('Recording stopped — preparing audio...')
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current)
     }
   }
@@ -391,14 +392,19 @@ export default function Home() {
                     </>
                   ) : (
                     <>
-                      <div className="text-5xl mb-4 animate-pulse">🔴</div>
+                      <div className="relative inline-block mb-4">
+                        <div className="text-5xl">🔴</div>
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full animate-ping" />
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full" />
+                      </div>
+                      <div className="text-xs font-semibold text-red-400 uppercase tracking-widest mb-2">Recording</div>
                       <div className="text-3xl font-mono font-bold mb-2">{formatTime(recordingTime)}</div>
-                      <p className="text-white/40 text-sm mb-6">Recording... tap stop when ready.</p>
+                      <p className="text-white/40 text-sm mb-6">Listening... tap stop when you&apos;re done.</p>
                       <button
                         onClick={stopRecording}
-                        className="px-8 py-4 bg-white text-black font-semibold rounded-full transition-all text-base"
+                        className="px-8 py-4 bg-white text-black font-semibold rounded-full transition-all text-base hover:bg-white/90"
                       >
-                        Stop & Analyze
+                        ⏹ Stop & Analyze
                       </button>
                     </>
                   )}
