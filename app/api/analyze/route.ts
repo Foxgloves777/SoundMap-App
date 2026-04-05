@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import * as fs from 'fs'
 import * as path from 'path'
-import { streamAnalysis, getMimeType, TrackInfo } from '@/lib/gemini'
+import { streamAnalysis, streamTextAnalysis, getMimeType, TrackInfo } from '@/lib/gemini'
 import { downloadYoutubeAudio, getYoutubeInfo, isValidYoutubeUrl } from '@/lib/youtube'
 
 export const maxDuration = 60
@@ -62,9 +62,32 @@ function getExtension(mimeType: string, filename?: string): string {
 export async function POST(req: NextRequest) {
   const contentType = req.headers.get('content-type') || ''
 
-  // --- YOUTUBE URL ---
+  // --- JSON body (YouTube URL or text query) ---
   if (contentType.includes('application/json')) {
-    const { url } = await req.json()
+    const { url, query } = await req.json()
+
+    // --- TEXT QUERY (song name / description) ---
+    if (query) {
+      return ndjsonStream(async (send) => {
+        send({ type: 'status', message: 'Analyzing from description...' })
+
+        const trackInfo: TrackInfo = {
+          title: query,
+          source: 'Text',
+        }
+
+        send({ type: 'trackInfo', trackInfo })
+        send({ type: 'status', message: 'Generating sonic blueprint...' })
+
+        let markdown = ''
+        for await (const chunk of streamTextAnalysis(query)) {
+          markdown += chunk
+          send({ type: 'chunk', text: chunk })
+        }
+
+        send({ type: 'done', markdown })
+      })
+    }
 
     if (!url) {
       return Response.json({ error: 'URL required' }, { status: 400 })

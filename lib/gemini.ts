@@ -215,6 +215,31 @@ export async function* streamAnalysis(
   }
 }
 
+// Stream analysis from a text query (song name / description, no audio file)
+export async function* streamTextAnalysis(query: string): AsyncGenerator<string> {
+  const stream = await ai.models.generateContentStream({
+    model: 'gemini-2.5-flash',
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          {
+            text: `Analyze the song/artist/sound described below and produce a complete SoundMap following exactly the format in your instructions. Be thorough, specific, and technically precise. Use your knowledge of the track's production, instrumentation, and sonic character.\n\nQuery: ${query}`
+          }
+        ]
+      }
+    ],
+    config: {
+      systemInstruction: SOUNDMAP_SYSTEM_PROMPT,
+    },
+  })
+
+  for await (const chunk of stream) {
+    const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text
+    if (text) yield text
+  }
+}
+
 // Non-streaming version (for testing)
 export async function analyzeAudioFile(filePath: string, sourceInfo?: string): Promise<string> {
   let markdown = ''

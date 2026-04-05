@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import ResultsView from '@/components/ResultsView'
 
-type InputMode = 'upload' | 'youtube' | 'record'
+type InputMode = 'upload' | 'youtube' | 'record' | 'text'
 type AnalysisState = 'idle' | 'loading' | 'done' | 'error'
 
 interface TrackInfo {
@@ -24,6 +24,7 @@ export default function Home() {
   const [result, setResult] = useState<AnalysisResult | null>(null)
   const [error, setError] = useState<string>('')
   const [youtubeUrl, setYoutubeUrl] = useState('')
+  const [songQuery, setSongQuery] = useState('')
   const [uploadFile, setUploadFile] = useState<File | null>(null)
   const [isRecording, setIsRecording] = useState(false)
   const [recordingTime, setRecordingTime] = useState(0)
@@ -100,7 +101,7 @@ export default function Home() {
     return { markdown, trackInfo }
   }
 
-  const runAnalysis = async (formData: FormData | { url: string }) => {
+  const runAnalysis = async (formData: FormData | { url: string } | { query: string }) => {
     setState('loading')
     setError('')
     setStatusMessage('Starting...')
@@ -111,7 +112,7 @@ export default function Home() {
     try {
       let response: Response
 
-      if ('url' in formData) {
+      if ('url' in formData || 'query' in formData) {
         response = await fetch('/api/analyze', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -157,6 +158,11 @@ export default function Home() {
   const handleYoutubeSubmit = () => {
     if (!youtubeUrl.trim()) return
     runAnalysis({ url: youtubeUrl.trim() })
+  }
+
+  const handleTextSubmit = () => {
+    if (!songQuery.trim()) return
+    runAnalysis({ query: songQuery.trim() })
   }
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -238,6 +244,7 @@ export default function Home() {
             {([
               { id: 'upload' as InputMode, label: '📁 Upload file' },
               { id: 'youtube' as InputMode, label: '▶️ YouTube link' },
+              { id: 'text' as InputMode, label: '🔍 Song name' },
               { id: 'record' as InputMode, label: '🎙️ Record live' },
             ]).map(tab => (
               <button
@@ -330,6 +337,33 @@ export default function Home() {
                 <button
                   onClick={handleYoutubeSubmit}
                   disabled={!youtubeUrl.trim() || state === 'loading'}
+                  className="w-full py-3.5 bg-white text-black font-semibold rounded-xl disabled:opacity-30 hover:bg-white/90 transition-all text-base"
+                >
+                  Analyze Track →
+                </button>
+              </div>
+            )}
+
+            {/* TEXT / SONG NAME */}
+            {mode === 'text' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm text-white/60 block mb-2">Song or artist</label>
+                  <input
+                    type="text"
+                    value={songQuery}
+                    onChange={(e) => setSongQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleTextSubmit()}
+                    placeholder="e.g. Billie Eilish - Ocean Eyes"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-white/50 transition-all"
+                  />
+                  <p className="text-xs text-white/30 mt-2">
+                    Type a song name, artist, or describe a sound — Gemini will analyze it from memory.
+                  </p>
+                </div>
+                <button
+                  onClick={handleTextSubmit}
+                  disabled={!songQuery.trim() || state === 'loading'}
                   className="w-full py-3.5 bg-white text-black font-semibold rounded-xl disabled:opacity-30 hover:bg-white/90 transition-all text-base"
                 >
                   Analyze Track →
