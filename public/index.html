@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SoundMap — Sonic DNA for AI Music</title>
+<meta name="description" content="Name a song, drop a file or record the room. SoundMap listens and returns the tempo, key, arrangement, full production breakdown and copyright-safe prompts for Suno, Udio and Lyria.">
+<meta name="theme-color" content="#F1EDE4">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SoundMap — Sonic DNA for AI Music">
+<meta property="og:description" content="Name a song, drop a file or record the room. Get the blueprint: tempo, key, arrangement, breakdown and AI-music prompts.">
+<meta property="og:image" content="https://sonicdna.netlify.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://sonicdna.netlify.app/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://sonicdna.netlify.app/og.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="bench">
+
+  <!-- ── Left rail: intake ── -->
+  <aside class="rail">
+    <header class="mast">
+      <p class="eyebrow">Sonic DNA for AI music</p>
+      <h1>Sound<em>Map</em></h1>
+      <p class="lede">Name a song, drop a file or record the room. It listens, maps the arrangement, and writes the prompts to rebuild the sound.</p>
+    </header>
+
+    <section class="intake" aria-label="Load a sound">
+      <div class="modes" role="tablist">
+        <button class="mode is-on" role="tab" aria-selected="true" data-mode="search">Song</button>
+        <button class="mode" role="tab" aria-selected="false" data-mode="upload">File</button>
+        <button class="mode" role="tab" aria-selected="false" data-mode="record">Microphone</button>
+      </div>
+
+      <div class="panel" id="panel-search">
+        <form class="find" id="find">
+          <input type="search" id="q" placeholder="Song name, or a YouTube link" autocomplete="off" aria-label="Search for a song by name, or paste a YouTube link">
+          <button type="submit" id="find-btn">Find</button>
+        </form>
+        <p class="find-note" id="find-note">It finds the song and actually listens to it. Nothing is written from memory.</p>
+        <ol class="results" id="results"></ol>
+      </div>
+
+      <div class="panel" id="panel-upload" hidden>
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept="audio/*,video/mp4,.mp3,.wav,.m4a,.aac,.flac,.ogg,.webm,.aiff">
+          <svg viewBox="0 0 48 24" aria-hidden="true"><path d="M1 12h5l2-7 3 14 3-18 3 22 3-16 3 10 3-13 3 16 3-11 3 6 2-3h8" /></svg>
+          <strong>Drop a sound here</strong>
+          <span>or click to choose · MP3, WAV, M4A, FLAC, AAC, OGG · up to 200 MB</span>
+        </label>
+      </div>
+
+      <div class="panel" id="panel-record" hidden>
+        <div class="rec">
+          <button class="rec-btn" id="rec-btn" aria-label="Start recording"><i></i></button>
+          <div>
+            <div class="rec-time" id="rec-time">0:00</div>
+            <div class="rec-status" id="rec-status">Press to record what's playing in the room</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="loaded" id="loaded" hidden>
+        <div class="loaded-info">
+          <div class="loaded-name" id="loaded-name"></div>
+          <div class="loaded-meta" id="loaded-meta"></div>
+        </div>
+        <button class="x" id="clear" aria-label="Remove this sound">×</button>
+      </div>
+
+      <p class="error" id="error" role="alert" hidden></p>
+
+      <button class="go" id="go" disabled>
+        <span id="go-label">Map this sound</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+    </section>
+
+    <section class="history" id="history" hidden aria-label="Recent maps">
+      <div class="history-head">
+        <h2>Recent maps</h2>
+        <button class="link" id="history-clear">Clear</button>
+      </div>
+      <ol id="history-list"></ol>
+    </section>
+
+    <footer class="colophon">Listening by Gemini · Prompts carry no artist or song names</footer>
+  </aside>
+
+  <!-- ── Right: the specimen sheet ── -->
+  <main class="sheet" id="sheet" data-state="empty">
+
+    <div class="sheet-head">
+      <div>
+        <p class="eyebrow" id="spec-no">Specimen — none loaded</p>
+        <h2 class="spec-title" id="spec-title">Nothing on the bench yet.</h2>
+      </div>
+      <dl class="spec-meta" id="spec-meta"></dl>
+    </div>
+
+    <!-- YouTube sources -->
+    <div class="yt" id="yt" hidden>
+      <div class="yt-frame"><div id="yt-player"></div></div>
+      <div>
+        <div class="yt-title" id="yt-title"></div>
+        <div class="yt-sub" id="yt-sub"></div>
+      </div>
+    </div>
+
+    <!-- waveform / timeline strip -->
+    <div class="strip" id="strip">
+      <button class="play" id="play" aria-label="Play" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path id="play-icon" d="M7 4l14 8-14 8z"/></svg>
+      </button>
+      <div class="wave" id="wave">
+        <canvas id="canvas"></canvas>
+        <div class="scan" aria-hidden="true"></div>
+        <div class="playhead" id="playhead" hidden></div>
+      </div>
+      <div class="clock" id="clock">0:00</div>
+    </div>
+    <div class="lane" id="lane" hidden></div>
+    <p class="status" id="status" aria-live="polite"></p>
+
+    <div class="report" id="report" hidden>
+
+      <section class="vitals">
+        <div class="vital vital-tempo">
+          <h3>Tempo</h3>
+          <div class="big"><span id="v-bpm">—</span><small>BPM</small></div>
+          <p id="v-tempo-note"></p>
+          <p class="check" id="v-tempo-check"></p>
+        </div>
+        <div class="vital">
+          <h3>Key</h3>
+          <div class="big serif" id="v-key">—</div>
+          <p>Treat as a lead, confirm on an instrument.</p>
+        </div>
+        <div class="vital">
+          <h3>Energy</h3>
+          <div class="big"><span id="v-energy">—</span><small>/10</small></div>
+          <div class="meter" id="v-meter" aria-hidden="true"></div>
+          <p id="v-energy-note"></p>
+        </div>
+        <div class="vital vital-wide">
+          <h3>Genre &amp; era</h3>
+          <div class="big serif small" id="v-genre">—</div>
+          <p id="v-era"></p>
+          <ul class="moods" id="v-moods"></ul>
+        </div>
+      </section>
+
+      <section class="block suno">
+        <header><h3>Master prompt</h3><span id="prompt-count"></span></header>
+        <div class="tabs" id="prompt-tabs" role="tablist">
+          <button role="tab" data-size="master" class="is-on">Full</button>
+          <button role="tab" data-size="medium">Medium</button>
+          <button role="tab" data-size="short">Short</button>
+        </div>
+        <p class="prompt" id="prompt"></p>
+        <div class="actions">
+          <button class="btn solid" id="copy-prompt">Copy prompt</button>
+          <button class="btn" id="copy-all">Copy full sheet</button>
+          <button class="btn" id="download">Download .md</button>
+        </div>
+      </section>
+
+      <section class="block" id="mods-block">
+        <header><h3>Modifiers</h3><span>Add one to the prompt to push it</span></header>
+        <ul class="mods" id="mods"></ul>
+      </section>
+
+      <section class="block" id="structure-block">
+        <header><h3>Structure</h3><span>Click a row to hear it · cut picture to these</span></header>
+        <table class="structure"><tbody id="structure"></tbody></table>
+      </section>
+
+      <section class="block ask" id="ask-block">
+        <header><h3>Ask about a moment</h3><span>Click the timeline to pick the spot</span></header>
+        <form class="ask-form" id="ask-form">
+          <button type="button" class="ask-at" id="ask-at" title="Switch between this moment and the whole song">At 0:00</button>
+          <input type="text" id="ask-q" placeholder="What's making that sound?" autocomplete="off" maxlength="500" aria-label="Your question">
+          <button type="submit" class="btn solid" id="ask-go">Ask</button>
+        </form>
+        <div class="ask-chips" id="ask-chips">
+          <button type="button">What instruments are playing here?</button>
+          <button type="button">What's that sound and how is it made?</button>
+          <button type="button">What changes at this moment?</button>
+          <button type="button">What are the drums doing here?</button>
+        </div>
+        <p class="ask-note" id="ask-note" hidden></p>
+        <ol class="answers" id="answers"></ol>
+      </section>
+
+      <section class="block">
+        <header><h3>Breakdown</h3><span>What's in the sound</span></header>
+        <dl class="traits" id="traits"></dl>
+      </section>
+
+      <section class="block" id="palette-block">
+        <header><h3>Instrument palette</h3><span id="palette-count"></span></header>
+        <dl class="palette" id="palette"></dl>
+      </section>
+
+      <section class="block" id="layers-block">
+        <header><h3>Genre layers</h3><span>What it's made of</span></header>
+        <table class="layers"><tbody id="layers"></tbody></table>
+      </section>
+
+    </div>
+
+    <div class="empty" id="empty">
+      <ol>
+        <li><b>01</b> Name a song, drop a file, or record the room.</li>
+        <li><b>02</b> SoundMap listens to the real audio and maps the arrangement on a timeline.</li>
+        <li><b>03</b> You get the breakdown, prompts in three lengths, and you can ask about any second of it.</li>
+      </ol>
+    </div>
+  </main>
+</div>
+
+<audio id="audio" preload="auto"></audio>
+<script type="module" src="app.js"></script>
+</body>
+</html>

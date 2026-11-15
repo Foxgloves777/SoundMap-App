@@ -1,9 +1,13 @@
+# SoundMap — static site in public/ plus one function behind /api/*.
+# GEMINI_API_KEY must be set in Netlify → Site configuration → Environment variables.
+
 [build]
-  command = "npm run build"
-  publish = ".next"
+  publish = "public"
+  command = "echo 'No build step'"
 
-# Netlify installs devDependencies by default for build
-# GEMINI_API_KEY must be set in Netlify → Site Settings → Environment Variables
+[build.environment]
+  NODE_VERSION = "22"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
