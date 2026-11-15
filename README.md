@@ -1,62 +1,46 @@
-# 🎵 SoundMap
+# SoundMap
 
-**Drop any audio. Get the sonic blueprint. Paste it into Suno, Udio, or Lyria.**
+**Name a song, drop a file or record the room. Get the sonic blueprint and the prompts to rebuild it.**
 
----
+Live at https://sonicdna.netlify.app · GitHub → Netlify (push to `main` deploys).
 
 ## What it does
 
-SoundMap analyzes any audio file and extracts its complete sonic DNA — then formats it as production-ready AI music generation prompts. Three input methods:
+- **Song** — type a song name (or paste a YouTube link). SoundMap finds it and Gemini *listens to it* from the link. Nothing is downloaded and nothing is written from memory.
+- **File** — MP3, WAV, FLAC, M4A, OGG, AAC up to 200 MB. Tempo is measured in the browser from the signal itself.
+- **Microphone** — record what's playing in the room.
 
-- **📁 Upload** — drag and drop any MP3, WAV, FLAC, M4A, OGG (up to 100MB)
-- **▶️ YouTube link** — paste any YouTube URL (up to 20 minutes)
-- **🎙️ Record live** — tap to record from your mic or hold it up to a speaker
+Every map gives: tempo, key, energy, genre and mood · a timestamped structure timeline · master / medium / short prompts for Suno, Udio and Lyria (no artist or song names) · modifier lines · full production breakdown · instrument palette · genre layers · **Ask about a moment** (click any second, ask what's making that sound).
 
-Output includes:
-- Genre DNA table
-- Tempo & rhythm breakdown
-- Harmonic foundation
-- Vocal characteristics
-- Instrumentation palette
-- Production characteristics
-- **Master SoundMap prompt** (copy → paste into Suno/Udio/Lyria)
-- Modifier blocks (push specific directions)
-- Short/medium/full prompt variants
-
-All output is copyright-safe — no artist names, no song titles.
-
----
-
-## Running the app
+## Run it locally
 
 ```bash
-# Already built and ready. Start it:
-cd /home/node/.openclaw/workspace/soundmap-app
-GEMINI_API_KEY=your_key npm run start -- -p 3099
-
-# Or use the start script (auto-loads .env.local):
-./start.sh
+npm install
+npm run dev        # http://localhost:4250
 ```
 
-## Accessing from outside the server
+The Gemini key is read from the environment, then `.env.local`, then `../.env`.
 
-**Option A: SSH tunnel (fastest)**
-```bash
-# On your local machine:
-ssh -L 3099:localhost:3099 root@66.179.136.102
-# Then open: http://localhost:3099
-```
+## How it's built
 
-**Option B: Open port 3099 in IONOS firewall**
-- IONOS Cloud Console → your server → Security Groups → add inbound rule: TCP port 3099
-- Then access: http://66.179.136.102:3099
+No framework and no build step.
 
----
+| Path | What |
+|---|---|
+| `public/` | The whole interface: `index.html`, `styles.css`, `app.js` |
+| `lib/core.mjs` | The API: `/api/search`, `/api/upload`, `/api/listen`, `/api/shape`, `/api/ask` |
+| `netlify/functions/api.mjs` | Wraps `lib/core.mjs` as one Netlify Function |
+| `dev.mjs` | Local server running the same handlers |
 
-## Stack
+Things that look odd but are deliberate (each was a bug first):
 
-- Next.js 16 (App Router)
-- Tailwind CSS v4
-- Gemini 2.5 Flash (audio analysis)
-- ytdl-core (YouTube extraction)
-- Built by Solomon — April 2026
+- **Two passes.** `/api/listen` (audio → plain notes) then `/api/shape` (notes → JSON). Asked to listen *and* fill a JSON schema in one call, Gemini sometimes stops listening and invents a different song.
+- **No `temperature` setting.** Lowering it makes current Gemini models hallucinate the audio.
+- **Model order** is `gemini-4-argon` first, chosen by test (see the comment in `lib/core.mjs`). Override with `SOUNDMAP_MODEL`.
+- **Uploads go browser → Gemini directly.** Netlify Functions cap request bodies near 4.5 MB, so the server only hands out a single-use upload address.
+- **M4A / WebM are converted to WAV in the browser.** Gemini doesn't reject them; it makes things up.
+- **API version is pinned to `v1beta`.** The `-latest` model aliases 404 on `v1`.
+
+## Netlify
+
+`GEMINI_API_KEY` must be set under Site configuration → Environment variables. Each API call must finish inside Netlify's 60-second function limit; a full map is two calls of roughly 30 s and 12 s.
