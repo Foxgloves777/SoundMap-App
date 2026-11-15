@@ -557,6 +557,29 @@ async function sendFile(source) {
   return source.remote = { kind: "file", name, mimeType };
 }
 
+// Mapping runs as a background job on the server (it outlasts a normal request),
+// so start it, then check on it every couple of seconds.
+async function runMap(body, onStatus) {
+  const id = crypto.randomUUID();
+  let started;
+  try {
+    started = await fetch("/.netlify/functions/map-background", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, ...body }),
+    });
+  } catch { throw new Error("Can't reach SoundMap. Check your connection and try again."); }
+  if (!started.ok) throw new Error(`SoundMap couldn't start the job (${started.status}). Try again.`);
+
+  const deadline = Date.now() + 5 * 60 * 1000;
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 2000));
+    const job = await api(`/api/job?id=${id}`);
+    if (job.status === "done") return job;
+    if (job.status === "error") throw new Error(job.error || "Mapping failed. Try again.");
+    onStatus(job.status);
+  }
+  throw new Error("Mapping is taking far longer than it should. Try again.");
+}
+
 async function analyse() {
   const source = state.source;
   if (!source || state.busy) return;
@@ -571,11 +594,10 @@ async function analyse() {
 
   try {
     const remote = source.kind === "youtube" ? { kind: "youtube", id: source.id } : await sendFile(source);
-    ticker = setInterval(() => setStatus(`Gemini is listening to the whole thing · ${secs()}s`), 500);
-    const { notes, model } = await api("/api/listen", { source: remote, measuredBpm: state.measuredBpm, duration: state.duration || null });
-    clearInterval(ticker);
-    ticker = setInterval(() => setStatus(`Writing up the sheet · ${secs()}s`), 500);
-    const data = await api("/api/shape", { notes, duration: state.duration || null });
+    let phase = "Gemini is listening to the whole thing";
+    ticker = setInterval(() => setStatus(`${phase} · ${secs()}s`), 500);
+    const { data, model } = await runMap({ source: remote, measuredBpm: state.measuredBpm, duration: state.duration || null },
+      status => { if (status === "writing") phase = "Writing up the sheet"; });
 
     const entry = {
       id: Date.now(), at: new Date().toISOString(),

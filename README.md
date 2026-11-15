@@ -28,13 +28,14 @@ No framework and no build step.
 | Path | What |
 |---|---|
 | `public/` | The whole interface: `index.html`, `styles.css`, `app.js` |
-| `lib/core.mjs` | The API: `/api/search`, `/api/upload`, `/api/listen`, `/api/shape`, `/api/ask` |
+| `lib/core.mjs` | The API: `/api/search`, `/api/upload`, `/api/job`, `/api/ask`, and the mapping job |
 | `netlify/functions/api.mjs` | Wraps `lib/core.mjs` as one Netlify Function |
+| `netlify/functions/map-background.mjs` | Runs a map as a background job |
 | `dev.mjs` | Local server running the same handlers |
 
 Things that look odd but are deliberate (each was a bug first):
 
-- **Two passes.** `/api/listen` (audio → plain notes) then `/api/shape` (notes → JSON). Asked to listen *and* fill a JSON schema in one call, Gemini sometimes stops listening and invents a different song.
+- **Two passes.** `listen()` (audio → plain notes) then `shape()` (notes → JSON). Asked to listen *and* fill a JSON schema in one call, Gemini sometimes stops listening and invents a different song.
 - **No `temperature` setting.** Lowering it makes current Gemini models hallucinate the audio.
 - **Model order** is `gemini-4-argon` first, chosen by test (see the comment in `lib/core.mjs`). Override with `SOUNDMAP_MODEL`.
 - **Uploads go browser → Gemini directly.** Netlify Functions cap request bodies near 4.5 MB, so the server only hands out a single-use upload address.
@@ -43,4 +44,4 @@ Things that look odd but are deliberate (each was a bug first):
 
 ## Netlify
 
-`GEMINI_API_KEY` must be set under Site configuration → Environment variables. Each API call must finish inside Netlify's 60-second function limit; a full map is two calls of roughly 30 s and 12 s.
+`GEMINI_API_KEY` must be set under Site configuration → Environment variables. Ordinary functions on this site are cut off at 30 seconds (measured), and a map takes 35-50, so mapping runs in `netlify/functions/map-background.mjs` (a Background Function, 15-minute limit) and reports progress through Netlify Blobs, which the page polls at `/api/job`.

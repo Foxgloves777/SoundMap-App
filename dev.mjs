@@ -11,7 +11,7 @@ for (const file of [".env.local", ".env", "../.env"]) {
   if (process.env.GEMINI_API_KEY) break;
   try { process.loadEnvFile(path.join(root, file)); } catch {}
 }
-const { handle } = await import("./lib/core.mjs");
+const { handle, runMapJob } = await import("./lib/core.mjs");
 
 const PORT = Number(process.env.PORT || 4250);
 const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": "text/javascript", ".mjs": "text/javascript",
@@ -21,9 +21,15 @@ const TYPES = { ".html": "text/html; charset=utf-8", ".css": "text/css", ".js": 
 http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
   try {
+    const chunks = [];
+    if (req.method === "POST") for await (const chunk of req) chunks.push(chunk);
+    // Stand-in for Netlify's background function: answer 202, keep working.
+    if (url.pathname === "/.netlify/functions/map-background") {
+      runMapJob(JSON.parse(Buffer.concat(chunks).toString() || "{}"));
+      res.writeHead(202);
+      return res.end();
+    }
     if (url.pathname.startsWith("/api/")) {
-      const chunks = [];
-      for await (const chunk of req) chunks.push(chunk);
       const response = await handle(new Request(url, {
         method: req.method,
         headers: req.headers,

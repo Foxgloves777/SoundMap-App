@@ -4,12 +4,15 @@
   "private": true,
   "description": "SoundMap — find, upload or record any sound and get its sonic DNA plus AI-music prompts",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "node dev.mjs",
     "start": "node dev.mjs"
   },
   "dependencies": {
-    "@google/genai": "^3.3.0"
+    "@google/genai": "^3.3.0",
+    "@netlify/blobs": "^11.1.9"
   }
 }
